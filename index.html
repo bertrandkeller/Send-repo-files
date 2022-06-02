@@ -1,0 +1,202 @@
+<html>
+
+<head>
+  <link href='https://cdn.jsdelivr.net/npm/boxicons@2.0.5/css/boxicons.min.css' rel='stylesheet'>
+  <link rel="stylesheet" href="awesomplete.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="filepond.css" />
+  <script type="module">
+    import { Octokit } from "https://cdn.skypack.dev/@octokit/rest";
+
+
+    const projectpath   = "mairie"
+
+    let headers = new Headers({
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, HEAD, POST, OPTIONS',
+      'Access-Control-Allow-Headers': '*'
+    });
+
+    async function call(value) {
+      console.log(value)
+      var config = {
+            method: 'POST',
+            headers: new Headers({'Accept': 'application/json','content-type': 'application/json'}),
+            mode: 'no-cors',
+            cache: 'default',
+            body: JSON.stringify(value)
+          };
+      fetch('http://127.0.0.1:8787', config).then(function (response) {
+        console.log(response)
+        if (response.ok) {
+          return response.json();
+        };
+        return Promise.reject(response);
+      }).catch(function (error) {
+        console.warn(error);
+      });
+    }
+
+    function change() {
+        return new Promise(function(resolve, reject) {
+            setTimeout(resolve, 2000);
+        }).then(function() {
+            console.log("Wrapped setTimeout after 2000ms");
+        });
+    }
+
+    //convert image to base 64
+    async function getBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        if (file.type.substr(0, 5) == "image") {
+          console.log("Images");
+          reader.readAsBinaryString(file);
+        }
+        if (file.type.substr(-3) == "pdf") {
+          console.log("PDF");
+          reader.readAsBinaryString(file);
+        }
+
+        reader.onload = (event) => resolve(btoa(event.target.result));
+        reader.onerror = error => reject(error);
+      });
+    }
+
+
+    const form = document.getElementById("form"),
+          btn = document.getElementById("submitBtn"),
+          imgDiv = document.getElementById("imgDiv");
+    var   fileInput = document.getElementById('input[type="file"]');
+    var   list = document.getElementById("myList");
+
+
+    async function getFile(path) {
+      return new Promise((successCallback, failureCallback) => {
+        let response = octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
+          owner,
+          repo,
+          path
+        })
+        successCallback(response)
+      })
+    }
+
+    function timedRefresh(time) {
+      setTimeout("location.reload(true);", time);
+    }
+
+    const listDisplay = getFile(projectpath).then(function (response) {
+      list.innerHTML = '';
+      response.data.map(x => {
+        let li = document.createElement("li");
+        li.className = "list-item";
+        li.innerText = x.name;
+        list.appendChild(li);
+      })
+    })
+
+    // Add class to copied element to denote success
+    function flashElement(element) {
+      element.classList.add("flash");
+      document.addEventListener("transitionnd", function() {
+        setTimeout(function() {
+          element.classList.remove("flash");
+        }, 1000);
+      });
+    }
+
+    function copyText(element) {
+      var textToCopy = element.innerText;
+      var myTemporaryInputElement = document.createElement("input");
+      myTemporaryInputElement.type = "text";
+      myTemporaryInputElement.value = textToCopy;
+      document.body.appendChild(myTemporaryInputElement);
+      myTemporaryInputElement.select();
+      document.execCommand("Copy");
+      document.body.removeChild(myTemporaryInputElement);
+    }
+
+    var styleSheetWrapperEl = document.getElementById('myList');
+    styleSheetWrapperEl.addEventListener('click', function (e) {
+      if (e.target.className !== 'list-item') return;
+      var element = e.target;
+      flashElement(element);
+      copyText(element);
+    });
+
+    btn.addEventListener('click', (event) => {
+      //prevent redirect
+      event.preventDefault();
+      let fileList = [];
+      for (var i = 0; i < pond.getFiles().length; i++) {
+        fileList.push(pond.getFiles()[i].file);
+      }
+      //const fileList63 = fileList.map(function(file){
+      //  const files64 = getBase64(file).then(
+      //    content => {
+      //      const files = {
+      //        name: file.name,
+      //        projectpath: projectpath,
+      //        binary: content
+      //      };
+      //      return files
+      //  })
+      //  return files64
+      //})
+      //Promise.all(fileList63).then(files => {
+      //  console.log(files)
+      //  var changes = {
+      //    files: {}
+      //  }
+      //  changes.files = Object.assign(files);
+      //  call(changes)
+      //})
+      //console.log(fileList63)
+      const fileList64 = fileList.map(function(file){
+        const result = getBase64(file).then(
+          content => {
+            const files = {
+              name: file.name,
+              projectpath: projectpath,
+              binary: content
+            };
+            call(files)
+          })
+      })
+  })
+
+</script>
+</head>
+
+<body>
+  <div class="wrapper">
+    <h1 class="text-center">Télécharger des fichiers</h1>
+    <div class="insert">
+      <form id="form">
+        <div>
+        <input id="file-input" type="file" class="filepond" name="filepond" data-allow-reorder="true" data-max-file-size="3MB" data-max-files="3">
+        </div>
+        <div>
+          <input type="submit" value="Envoyer ce fichier" class="input-file" id="submitBtn">
+        </div>
+      </form>
+    </div>
+    <h2>Liste des fichiers téléchargés</h2>
+    <ul id="myList" class="list"></ul>
+  </div>
+  <div class="overlay hide">
+    <div class="overlay__inner">
+      <div class="overlay__content"><span class="spinner"></span></div>
+    </div>
+  </div>
+  <script src="https://unpkg.com/filepond@^4/dist/filepond.js"></script>
+  <script>
+    // Get a reference to the file input element
+    const inputElement = document.querySelector('input[type="file"]');
+    // Create a FilePond instance
+    const pond = FilePond.create(inputElement);
+  </script>
+</body>
+
+</html>

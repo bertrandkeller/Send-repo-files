@@ -1,0 +1,16 @@
+
+# NPM
+package-lock.json
+
+# Editor
+.vscode
+
+# Hugo
+config-local.toml
+resources/_gen
+public
+worker
+_site
+
+# OS file systems
+.DS_Store
