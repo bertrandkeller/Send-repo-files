@@ -17,16 +17,14 @@
     });
 
     async function call(value) {
-      console.log(value)
       var config = {
             method: 'POST',
-            headers: new Headers({'Accept': 'application/json','content-type': 'application/json'}),
-            mode: 'no-cors',
+            headers: new Headers({'Access-Control-Allow-Origin': '*','Accept': 'application/json','content-type': 'application/json'}),
+            mode: 'cors',
             cache: 'default',
             body: JSON.stringify(value)
           };
       fetch('https://pn-loadfiles.tumulus.workers.dev', config).then(function (response) {
-        console.log(response)
         if (response.ok) {
           return response.json();
         };
@@ -76,15 +74,15 @@
           method: 'GET',
           headers: new Headers({'Accept': 'application/json','content-type': 'application/json'}),
           mode: 'cors',
-          cache: 'default'
+          cache: 'no-cache'
         };
-        console.log('https://api.github.com/repos/{owner}/{repo}/contents/{projectpath}')
-        let response =  fetch('https://api.github.com/repos/bertrandkeller/quickaudit/contents/mairie', config).then(function (response) {
+        const url = 'https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + projectpath
+        let response =  fetch(url, config).then(function (response) {
           console.log(response)
           if (response.ok) {
             return response.json();
           };
-          return Promise.reject(response);
+          return [{'name':'Aucun fichier pour le moment'}];
         }).catch(function (error) {
           console.warn(error);
         });
@@ -97,7 +95,7 @@
     }
 
     const listDisplay = getFile(projectpath).then(function (response) {
-      console.log(response)
+      console.log('response',response)
       list.innerHTML = '';
       response.map(x => {
         let li = document.createElement("li");
